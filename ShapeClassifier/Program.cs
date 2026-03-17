@@ -1,4 +1,5 @@
 ﻿using ShapeClassifier.Models;
+using ShapeClassifier.Services;
 
 namespace ShapeClassifier;
 
@@ -33,6 +34,39 @@ class Program
             }
         }
         
+        ImageGenerator imageGenerator = new ImageGenerator();
+        
+        
+        
+        bool[,] image2D = new bool[224, 224];
+        for (var i = 0; i < dataset[0].Length; i++)
+        {
+            int row = i / 224;
+            int col = i % 224;
+            image2D[row, col] = dataset[0][i];
+        }
+        
+        
+        //
+        // Temporary code to test image generation and moving to center
+        //
+        FigureFunctions figureFunctions = new FigureFunctions();
+        var figure = figureFunctions.MoveImageToCenter(image2D);
+        
+        bool[] movedImage = new bool[224 * 224];
+        for (var i = 0; i < figure.GetLength(0); i++)
+        {
+            for (var j = 0; j < figure.GetLength(1); j++)   
+            {
+                movedImage[i * 224 + j] = figure[i, j];
+            }
+        }
+        
+        imageGenerator.GenerateImage(movedImage);
+        
+        //
+        // End of temporary code
+        //
         
         //loaded dataset
     }
