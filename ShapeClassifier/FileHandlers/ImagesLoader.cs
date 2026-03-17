@@ -1,5 +1,6 @@
 ﻿using System.Drawing;
 using System.Drawing.Drawing2D;
+using ShapeClassifier.Models;
 
 namespace ShapeClassifier.FileHandlers;
 
@@ -7,8 +8,11 @@ public class ImagesLoader
 {
     private const int ImageSize = 224;
     
-    
-    public (List<bool[]>, List<string>) LoadImages(string pathToImages)
+    /// <summary>
+    /// Loads images from the specified directory, normalizes them to a fixed size, converts them to binary arrays, and extracts labels from file names. The method returns a tuple containing a list of binary arrays representing the images and a list of recognized shape labels.
+    /// </summary>
+    /// <param name="pathToImages">Path to images</param>
+    public (List<bool[]>, List<Shape>) LoadImages(string pathToImages)
     {
         var files = Directory.GetFiles(pathToImages);
         var imagesFiles = files.Where(file => file.EndsWith(".jpg") || file.EndsWith(".png")).ToList();
@@ -36,9 +40,17 @@ public class ImagesLoader
                 Console.WriteLine("Error loading image: " + e.Message);
             }
         }
-        return (imagesData, labels);
+        
+        var labelRecogniser = new Services.LabelRecogniser();
+        var recognisedLabels = labelRecogniser.RecogniseLabels(labels);
+        
+        return (imagesData, recognisedLabels);
     }
 
+    /// <summary>
+    /// Normalizes the input image by resizing it to a fixed size using high-quality bicubic interpolation. This process ensures that all images have the same dimensions, which is essential for consistent feature extraction and classification. The method creates a new Bitmap object with the specified size, draws the original image onto it using the Graphics class, and returns the normalized image. If any errors occur during this process, they are caught and logged to the console.
+    /// </summary>
+    /// <param name="image">Image in bitmap format</param>
     private Bitmap NormalizeImage(Bitmap image)
     {
         var resizedImage = new Bitmap(ImageSize, ImageSize);
@@ -57,6 +69,10 @@ public class ImagesLoader
         return resizedImage;
     }
     
+    /// <summary>
+    /// Converts the normalized image into a binary array, where each pixel is represented as a boolean value (false for white pixels and true for non-white pixels). The method iterates through each pixel of the image, checks its color, and populates a 2D boolean array accordingly. This binary representation is useful for feature extraction and classification tasks, as it simplifies the image data while retaining essential information about the shape and structure of the objects in the image.
+    /// </summary>
+    /// <param name="image">Image in bitmap format</param>
     private bool[,] ConvertToBinaryArray(Bitmap image)
     {
         var binaryArray = new bool[ImageSize, ImageSize];
@@ -65,7 +81,7 @@ public class ImagesLoader
             for (int x = 0; x < ImageSize; x++)
             {
                 var pixel = image.GetPixel(x, y);
-                binaryArray[y, x] = pixel == Color.White;
+                binaryArray[y, x] = (pixel.Name != "ffffffff");
             }
         }
         return binaryArray;

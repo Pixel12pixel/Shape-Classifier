@@ -1,18 +1,12 @@
-﻿// // -----------------------------------------------------------------------------
-// // File        : TempHandler.cs
-// // Project     : ShapeClassifier
-// //
-// // Author      : Dorian Koehler
-// // Created     : 2026.03.16
-// // Last Edited : 2026.03.16
-// //
-// // Copyright (c) 2026 Dorian Koehler
-// // Licensed under the MIT License.
-// // -----------------------------------------------------------------------------
+﻿using ShapeClassifier.Models;
 
 namespace ShapeClassifier.FileHandlers;
 
 public class TempHandler
 {
     
+    public void SaveDataset(List<bool[]> dataset, List<Shape> labels, string filePath)
+    {
+        // Implement logic to save the dataset and labels to a file
+    }
 }
