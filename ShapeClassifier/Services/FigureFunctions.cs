@@ -1,5 +1,7 @@
 ﻿
 
+using System;
+
 namespace ShapeClassifier.Services;
 
 public class FigureFunctions

@@ -1,4 +1,6 @@
-﻿using ShapeClassifier.Models;
+﻿using System;
+using System.Collections.Generic;
+using ShapeClassifier.Models;
 using ShapeClassifier.Services;
 
 namespace ShapeClassifier;
@@ -7,6 +9,7 @@ class Program
 {
     static void Main(string[] args)
     {
+        
         Intro();
 
         var dataset = new List<bool[]>();
@@ -33,6 +36,8 @@ class Program
                 Console.WriteLine("Invalid input. Please enter 1 or 2.");
             }
         }
+
+        Console.ReadLine();
         
         ImageGenerator imageGenerator = new ImageGenerator();
         
