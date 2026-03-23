@@ -1,5 +1,5 @@
-﻿
-using System;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -8,6 +8,7 @@ using ShapeClassifier.Models;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using BitConverter = ShapeClassifier.Converters.BitConverter;
 
 
 namespace ShapeClassifier.FileHandlers;
@@ -16,25 +17,27 @@ public class ImagesLoader
 {
     private const int ImageSize = 224;
     
+    private BitConverter bitConverter = new BitConverter();
+
     /// <summary>
     /// Loads images from the specified directory, normalizes them to a fixed size, converts them to binary arrays, and extracts labels from file names. The method returns a tuple containing a list of binary arrays representing the images and a list of recognized shape labels.
     /// </summary>
     /// <param name="pathToImages">Path to images</param>
-    public (List<bool[]>, List<Shape>) LoadImages(string pathToImages)
+    public (List<BitArray[]>, List<Shape>) LoadImages(string pathToImages)
     {
         var files = Directory.GetFiles(pathToImages);
         var imagesFiles = files.Where(file => file.EndsWith(".jpg") || file.EndsWith(".png")).ToList();
-        
-        List<bool[]> imagesData;
+
+        List<BitArray[]> imagesData;
         var labels = new List<string>();
-        
+
         var shuffleService = new Services.ShuffleService();
         imagesFiles = shuffleService.Shuffle(imagesFiles);
 
-        var processedImages = new bool[imagesFiles.Count][];
-        
+        var processedImages = new BitArray[imagesFiles.Count][];
+
         int processedCount = 0;
-        
+
         Parallel.For(0, imagesFiles.Count, new ParallelOptions
         {
             MaxDegreeOfParallelism = Environment.ProcessorCount
@@ -49,40 +52,22 @@ public class ImagesLoader
             }
         });
 
-        imagesData = new List<bool[]>(processedImages.ToArray());
+        imagesData = new List<BitArray[]>(processedImages.ToArray());
+
         
-        /*
-        foreach (var file in imagesFiles)
-        {
-            try
-            {
-                using var image = new Bitmap(file);
-                var normalizedImage = NormalizeImage(image);
-                var binaryArray = ConvertToBinaryArray(normalizedImage);
-                var flattenedArray = binaryArray.Cast<bool>().ToArray();
-                
-                imagesData.Add(flattenedArray);
-                labels.Add(Path.GetFileNameWithoutExtension(file));
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("Error loading image: " + e.Message);
-            }
-        }
-        */
         var labelRecogniser = new Services.LabelRecogniser();
         var recognisedLabels = labelRecogniser.RecogniseLabels(labels);
-        
+
         return (imagesData, recognisedLabels);
     }
 
-    private bool[] Process(string file)
+    private BitArray[] Process(string file)
     {
         try
         {
             using var image = Image.Load<Rgba32>(file);
             NormalizeImage(image);
-            return ConvertToBinaryArray(image).Cast<bool>().ToArray();
+            return ConvertToBinaryArray(image);
         }
         catch (Exception e)
         {
@@ -90,8 +75,8 @@ public class ImagesLoader
             throw;
         }
     }
-    
-    
+
+
     private void NormalizeImage(Image<Rgba32> image)
     {
         image.Mutate(ctx => ctx.Resize(new ResizeOptions
@@ -101,8 +86,8 @@ public class ImagesLoader
             Sampler = KnownResamplers.Bicubic
         }));
     }
-    
-    
+
+
     private Image<Rgba32> NormalizeImage1(Image image)
     {
         try
@@ -122,8 +107,8 @@ public class ImagesLoader
             throw;
         }
     }
-    
-    private bool[,] ConvertToBinaryArray(Image<Rgba32> image)
+
+    private BitArray[] ConvertToBinaryArray(Image<Rgba32> image)
     {
         int width = image.Width;
         int height = image.Height;
@@ -144,23 +129,15 @@ public class ImagesLoader
                 }
             }
         });
-        
+
         image.Dispose();
         
-        return binaryArray;
+        return bitConverter.ToBitArrays(binaryArray);
     }
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+
     /*
-    
+
     /// <summary>
     /// Normalizes the input image by resizing it to a fixed size using high-quality bicubic interpolation. This process ensures that all images have the same dimensions, which is essential for consistent feature extraction and classification. The method creates a new Bitmap object with the specified size, draws the original image onto it using the Graphics class, and returns the normalized image. If any errors occur during this process, they are caught and logged to the console.
     /// </summary>
@@ -179,10 +156,10 @@ public class ImagesLoader
             Console.WriteLine("Error normalizing image: " + e.Message);
             throw;
         }
-        
+
         return resizedImage;
     }
-    
+
     /// <summary>
     /// Converts the normalized image into a binary array, where each pixel is represented as a boolean value (false for white pixels and true for non-white pixels). The method iterates through each pixel of the image, checks its color, and populates a 2D boolean array accordingly. This binary representation is useful for feature extraction and classification tasks, as it simplifies the image data while retaining essential information about the shape and structure of the objects in the image.
     /// </summary>

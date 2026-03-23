@@ -1,43 +1,57 @@
-﻿namespace ShapeClassifier.Converters;
+﻿using System.Collections;
+
+namespace ShapeClassifier.Converters;
 
 public class BitConverter
 {
     /// <summary>
-    /// Converts an array of boolean values (bits) into an array of bytes. Each byte can represent 8 bits, so the resulting byte array will be smaller than the input boolean array if the length of the boolean array is not a multiple of 8. The method iterates through each bit in the input array and sets the corresponding bit in the output byte array if the boolean value is true.
+    ///     Converts a 2D array of booleans into an array of BitArrays, where each BitArray represents 8 bits (1 byte) of the
+    ///     original boolean array.
     /// </summary>
-    /// <param name="bits">array of boolean values (bits)</param>
-    /// <returns>array of bytes</returns>
-    public byte[] GetBytes(bool[] bits)
+    /// <param name="bits">array of booleans</param>
+    /// <returns>array of BitArrays</returns>
+    public BitArray[] ToBitArrays(bool[] bits)
     {
-        var byteCount = (bits.Length + 7) / 8;
-        var bytes = new byte[byteCount];
+        var output = new BitArray[bits.Length / 8];
+        for (var i = 0; i < output.Length; i++) output[i] = new BitArray(bits.Skip(i * 8).Take(8).ToArray());
+        return output;
+    }
 
-        for (var i = 0; i < bits.Length; i++)
+    public BitArray[] ToBitArrays(bool[,] bits)
+    {
+        var output = new BitArray[bits.Length / 8];
+        for (var i = 0; i < output.Length; i++)
         {
-            if (bits[i])
+            var byteBits = new bool[8];
+            for (var j = 0; j < 8; j++)
             {
-                bytes[i / 8] |= (byte)(1 << (i % 8));
+                var index = i * 8 + j;
+                if (index < bits.Length) byteBits[j] = bits[index / bits.GetLength(1), index % bits.GetLength(1)];
             }
-        }
 
-        return bytes;
+            output[i] = new BitArray(byteBits);
+        }
+        return output;
     }
 
     /// <summary>
-    /// Converts an array of bytes back into an array of boolean values (bits). The method iterates through each byte in the input array and checks each bit within the byte. If a bit is set (i.e., its value is 1), the corresponding boolean value in the output array is set to true; otherwise, it is set to false. The resulting boolean array will have a length that is 8 times the length of the input byte array, as each byte can represent 8 bits.
+    ///     Converts an array of BitArrays back into a 2D array of booleans. The method iterates through each BitArray and
+    ///     extracts the individual bits, reconstructing the original boolean array based on the specified size (default is
+    ///     224x224). The resulting 2D boolean array represents the original data that was converted into BitArrays.
     /// </summary>
-    /// <param name="bytes">array of bytes</param>
-    /// <returns>array of boolean values (bits)</returns>
-    public bool[] GetBits(byte[] bytes)
+    /// <param name="bitArrays">array of BitArrays</param>
+    /// <param name="size">target array size</param>
+    /// <returns>array of booleans</returns>
+    public bool[,] ToBits(BitArray[] bitArrays, int size = 224)
     {
-        var bits = new bool[bytes.Length * 8];
-        for (var i = 0; i < bytes.Length; i++)
+        var bits = new bool[size, size];
+        for (var i = 0; i < bitArrays.Length; i++)
+        for (var j = 0; j < 8; j++)
         {
-            for (var j = 0; j < 8; j++)
-            {
-                bits[i * 8 + j] = (bytes[i] & (1 << j)) != 0;
-            }
+            var index = i * 8 + j;
+            if (index < size * size) bits[index / size, index % size] = bitArrays[i][j];
         }
+
         return bits;
     }
 }
