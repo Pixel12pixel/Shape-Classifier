@@ -5,6 +5,7 @@ using ShapeClassifier.Models;
 using ShapeClassifier.Services;
 using Object = System.Object;
 using ShapeClassifier.Converters;
+using BitConverter = ShapeClassifier.Converters.BitConverter;
 
 namespace ShapeClassifier;
 
@@ -15,7 +16,7 @@ class Program
         
         Intro();
 
-        ulong[][] dataset;
+        ulong[][] dataset = new ulong[][] { };
         var labels = new List<Shape>();
         
         while (true)
@@ -42,38 +43,40 @@ class Program
 
         Console.ReadLine();
         
-        List<bool[,]> datasetDiv = new List<bool[,]>();
+        var figureFunctions = new FigureFunctions();
+        
+        var bitConverter = new BitConverter();
+        
+        
+        var radialRatios = new float[dataset.Length];
+        
+        var extents = new float[dataset.Length];
+        
+        var inertiaRatios = new float[dataset.Length];
+        
+        var centralSymmetry = new float[dataset.Length];
 
-        foreach (var data in dataset)
+
+        int processedCount = 0;
+        
+        Parallel.For(0, dataset.Length, new ParallelOptions
         {
-            bool[,] image2D = new bool[224, 224];
-            for (var i = 0; i < data.Length; i++)
+            MaxDegreeOfParallelism = Environment.ProcessorCount
+        }, i =>
+        {
+            var img = bitConverter.ToBits(dataset[i]);
+            var metric = figureFunctions.CalculateCentersAndAreasAsync(img);
+            radialRatios[i] = figureFunctions.CalculateRadialRatiosAsync(img, metric);
+            extents[i] = figureFunctions.CalculateExtentsAsync(img, metric.area);
+            inertiaRatios[i] = figureFunctions.CalculateInertiaRatiosAsync(img, metric);
+            centralSymmetry[i] = figureFunctions.CalculateCentralSymmetryAsync(img, metric);
+            var current = Interlocked.Increment(ref processedCount);
+            if (current % 1000 == 0)
             {
-                int row = i / 224;
-                int col = i % 224;
-                image2D[row, col] = data[i];
-                
+                Console.WriteLine($"Processed {current} / {dataset.Length}");
             }
-            datasetDiv.Add(image2D);
-        }
-
-        FigureFunctions figureFunctions = new FigureFunctions();
-
-        List<float> perimeters = await figureFunctions.CalculatePerimeters(datasetDiv);
-
-        List<float> areas = await figureFunctions.CalculateFields(datasetDiv);
+        });
         
-        List<float> circularity = await figureFunctions.CalculateCircularity("areas.csv", "perimeters.csv");
-        
-        List<float> radialRatios = await figureFunctions.CalculateRadialRatiosAsync(datasetDiv);
-        
-        List<float> centralSymmetry = await figureFunctions.CalculateCentralSymmetryAsync(datasetDiv);
-        
-        List<float> inertiaRatios = await figureFunctions.CalculateInertiaRatiosAsync(datasetDiv);
-        
-        List<float> peakCounts = await figureFunctions.CalculatePeakCountsAsync(datasetDiv);
-        
-        List<float> extents = await figureFunctions.CalculateExtentsAsync(datasetDiv, areas);
         
         //figureFunctions.normalize_minmax(perimeters);
         
@@ -81,19 +84,13 @@ class Program
         
         CSVConverter csvConverter = new CSVConverter();
         
-        csvConverter.SaveToCsv(perimeters, nameof(perimeters));
-        
-        csvConverter.SaveToCsv(areas, nameof(areas));
-        
-        csvConverter.SaveToCsv(circularity, nameof(circularity));
+
         
         csvConverter.SaveToCsv(radialRatios, nameof(radialRatios));
         
         csvConverter.SaveToCsv(centralSymmetry, nameof(centralSymmetry));
         
         csvConverter.SaveToCsv(inertiaRatios, nameof(inertiaRatios));
-        
-        csvConverter.SaveToCsv(peakCounts, nameof(peakCounts));
         
         csvConverter.SaveToCsv(extents, nameof(extents));
         
@@ -126,8 +123,7 @@ class Program
         Console.Clear();
         Console.WriteLine("Input path to images:");
         Console.Write("> ");
-        //var pathToImages = Console.ReadLine();
-        var pathToImages = @"D:\Projekty\SystemySztucznejInteligencji\ProjektZaliczeniowy_Dorian\ShapeClassifier\Shapes\shapes";
+        var pathToImages = Console.ReadLine();
         
         Console.WriteLine("Loading images...");
         

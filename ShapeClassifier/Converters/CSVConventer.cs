@@ -5,10 +5,13 @@ namespace ShapeClassifier.Converters;
 
 public class CSVConverter
 {
+    private const string BasePath = @"[PATH]";
+    private const string Traits = "traits";
+    private const string Marged = "MergedTraits.csv";
     
-    public void SaveToCsv(List<float> values, string trait)
+    public void SaveToCsv(float[] values, string trait)
     {
-        string path =$@"D:\Projekty\SystemySztucznejInteligencji\ProjektZaliczeniowy_Dorian\ShapeClassifier\CSVFiles\traits\{trait}.csv";
+        string path = Path.Combine(BasePath, Traits, trait + ".csv");
         using var writer = new StreamWriter(path);
         writer.WriteLine(trait);
 
@@ -21,7 +24,7 @@ public class CSVConverter
     
     public void SaveToCsv(List<Shape> values, string trait)
     {
-        string path =$@"D:\Projekty\SystemySztucznejInteligencji\ProjektZaliczeniowy_Dorian\ShapeClassifier\CSVFiles\traits\{trait}.csv";
+        string path = Path.Combine(BasePath, Traits, trait + ".csv");
         using var writer = new StreamWriter(path);
         writer.WriteLine(trait);
 
@@ -34,8 +37,8 @@ public class CSVConverter
 
     public void MergeCsvFiles()
     {
-        string folder = @"D:\Projekty\SystemySztucznejInteligencji\ProjektZaliczeniowy_Dorian\ShapeClassifier\CSVFiles\traits";
-        string path = @"D:\Projekty\SystemySztucznejInteligencji\ProjektZaliczeniowy_Dorian\ShapeClassifier\CSVFiles\MergedTraits.csv";
+        string folder = Path.Combine(BasePath, Traits);
+        string path = Path.Combine(BasePath, Marged);
         
         var files =  Directory.GetFiles(folder);
         
