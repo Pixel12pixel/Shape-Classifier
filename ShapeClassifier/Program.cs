@@ -1,4 +1,7 @@
-﻿using ShapeClassifier.Models;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using ShapeClassifier.Models;
 using ShapeClassifier.Services;
 using Object = System.Object;
 using ShapeClassifier.Converters;
@@ -9,9 +12,10 @@ class Program
 {
     static async Task Main(string[] args)
     {
+        
         Intro();
 
-        var dataset = new List<bool[]>();
+        ulong[][] dataset;
         var labels = new List<Shape>();
         
         while (true)
@@ -35,6 +39,8 @@ class Program
                 Console.WriteLine("Invalid input. Please enter 1 or 2.");
             }
         }
+
+        Console.ReadLine();
         
         List<bool[,]> datasetDiv = new List<bool[,]>();
 
@@ -103,35 +109,6 @@ class Program
         //Console.WriteLine($"Best average is {bestAverage2}");
         //Console.WriteLine($"Smallest impurity is {smallestImpurity2}");
 
-        //ImageGenerator imageGenerator = new ImageGenerator();
-
-
-
-
-
-
-        //
-        // Temporary code to test image generation and moving to center
-        //
-        /*FigureFunctions figureFunctions = new FigureFunctions();
-        var figure = figureFunctions.MoveImageToCenter(image2D);
-
-        bool[] movedImage = new bool[224 * 224];
-        for (var i = 0; i < figure.GetLength(0); i++)
-        {
-            for (var j = 0; j < figure.GetLength(1); j++)
-            {
-                movedImage[i * 224 + j] = figure[i, j];
-            }
-        }
-
-        imageGenerator.GenerateImage(movedImage);*/
-
-        //
-        // End of temporary code
-        //
-
-        //loaded dataset
     }
 
     private static void Intro()
@@ -144,7 +121,7 @@ class Program
         Console.Write("> ");
     }
 
-    private static (List<bool[]>, List<Shape>) PrepareDataset()
+    private static (ulong[][], List<Shape>) PrepareDataset()
     {
         Console.Clear();
         Console.WriteLine("Input path to images:");
