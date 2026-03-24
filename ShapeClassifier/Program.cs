@@ -13,7 +13,7 @@ class Program
         
         Intro();
 
-        var dataset = new List<BitArray[]>();
+        ulong[][] dataset;
         var labels = new List<Shape>();
         
         while (true)
@@ -55,7 +55,7 @@ class Program
         Console.Write("> ");
     }
 
-    private static (List<BitArray[]>, List<Shape>) PrepareDataset()
+    private static (ulong[][], List<Shape>) PrepareDataset()
     {
         Console.Clear();
         Console.WriteLine("Input path to images:");

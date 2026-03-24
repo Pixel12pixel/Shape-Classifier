@@ -12,46 +12,40 @@ public class BitConverter
     /// <returns>array of BitArrays</returns>
     public BitArray[] ToBitArrays(bool[] bits)
     {
-        var output = new BitArray[bits.Length / 8];
-        for (var i = 0; i < output.Length; i++) output[i] = new BitArray(bits.Skip(i * 8).Take(8).ToArray());
-        return output;
-    }
+        var outputLength = bits.Length / 8;
+        var output = new BitArray[outputLength];
 
-    public BitArray[] ToBitArrays(bool[,] bits)
-    {
-        var output = new BitArray[bits.Length / 8];
-        for (var i = 0; i < output.Length; i++)
+        for (var i = 0; i < outputLength; i++)
         {
             var byteBits = new bool[8];
-            for (var j = 0; j < 8; j++)
-            {
-                var index = i * 8 + j;
-                if (index < bits.Length) byteBits[j] = bits[index / bits.GetLength(1), index % bits.GetLength(1)];
-            }
-
+            var baseIndex = i * 8;
+            for (var j = 0; j < 8; j++) byteBits[j] = bits[baseIndex + j];
             output[i] = new BitArray(byteBits);
         }
+
         return output;
     }
 
-    /// <summary>
-    ///     Converts an array of BitArrays back into a 2D array of booleans. The method iterates through each BitArray and
-    ///     extracts the individual bits, reconstructing the original boolean array based on the specified size (default is
-    ///     224x224). The resulting 2D boolean array represents the original data that was converted into BitArrays.
-    /// </summary>
-    /// <param name="bitArrays">array of BitArrays</param>
-    /// <param name="size">target array size</param>
-    /// <returns>array of booleans</returns>
-    public bool[,] ToBits(BitArray[] bitArrays, int size = 224)
+
+
+    public bool[,] ToBits(ulong[] data, int size = 224)
     {
-        var bits = new bool[size, size];
-        for (var i = 0; i < bitArrays.Length; i++)
-        for (var j = 0; j < 8; j++)
+        var result = new bool[size, size];
+
+        for (int y = 0; y < size; y++)
         {
-            var index = i * 8 + j;
-            if (index < size * size) bits[index / size, index % size] = bitArrays[i][j];
+            var rowBaseIndex = y * size;
+
+            for (int x = 0; x < size; x++)
+            {
+                var linearIndex = rowBaseIndex + x;
+                var wordIndex = linearIndex >> 6;
+                var bitIndex = linearIndex & 63;
+
+                result[y, x] = (data[wordIndex] & (1UL << bitIndex)) != 0;
+            }
         }
 
-        return bits;
+        return result;
     }
 }

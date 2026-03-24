@@ -8,7 +8,6 @@ using ShapeClassifier.Models;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using BitConverter = ShapeClassifier.Converters.BitConverter;
 
 
 namespace ShapeClassifier.FileHandlers;
@@ -16,27 +15,27 @@ namespace ShapeClassifier.FileHandlers;
 public class ImagesLoader
 {
     private const int ImageSize = 224;
-    
-    private BitConverter bitConverter = new BitConverter();
 
     /// <summary>
     /// Loads images from the specified directory, normalizes them to a fixed size, converts them to binary arrays, and extracts labels from file names. The method returns a tuple containing a list of binary arrays representing the images and a list of recognized shape labels.
     /// </summary>
     /// <param name="pathToImages">Path to images</param>
-    public (List<BitArray[]>, List<Shape>) LoadImages(string pathToImages)
+    public (ulong[][], List<Shape>) LoadImages(string pathToImages)
     {
-        var files = Directory.GetFiles(pathToImages);
-        var imagesFiles = files.Where(file => file.EndsWith(".jpg") || file.EndsWith(".png")).ToList();
-
-        List<BitArray[]> imagesData;
-        var labels = new List<string>();
+        var imagesFiles = Directory
+            .EnumerateFiles(pathToImages)
+            .Where(file => file.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
+                           || file.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        
+        var labels = new string[imagesFiles.Count];
 
         var shuffleService = new Services.ShuffleService();
         imagesFiles = shuffleService.Shuffle(imagesFiles);
 
-        var processedImages = new BitArray[imagesFiles.Count][];
+        var processedImages = new ulong[imagesFiles.Count][];
 
-        int processedCount = 0;
+        var processedCount = 0;
 
         Parallel.For(0, imagesFiles.Count, new ParallelOptions
         {
@@ -44,6 +43,7 @@ public class ImagesLoader
         }, i =>
         {
             processedImages[i] = Process(imagesFiles[i]);
+            labels[i] = Path.GetFileNameWithoutExtension(imagesFiles[i]);
 
             var current = Interlocked.Increment(ref processedCount);
             if (current % 1000 == 0)
@@ -51,17 +51,15 @@ public class ImagesLoader
                 Console.WriteLine($"Processed {current} / {imagesFiles.Count}");
             }
         });
-
-        imagesData = new List<BitArray[]>(processedImages.ToArray());
-
+        
         
         var labelRecogniser = new Services.LabelRecogniser();
-        var recognisedLabels = labelRecogniser.RecogniseLabels(labels);
+        var recognisedLabels = labelRecogniser.RecogniseLabels(labels.ToList());
 
-        return (imagesData, recognisedLabels);
+        return (processedImages, recognisedLabels);
     }
 
-    private BitArray[] Process(string file)
+    private ulong[] Process(string file)
     {
         try
         {
@@ -108,31 +106,38 @@ public class ImagesLoader
         }
     }
 
-    private BitArray[] ConvertToBinaryArray(Image<Rgba32> image)
+    private ulong[] ConvertToBinaryArray(Image<Rgba32> image)
     {
-        int width = image.Width;
-        int height = image.Height;
+        var width = image.Width;
+        var height = image.Height;
 
-        var binaryArray = new bool[height, width];
+        var totalPixels = width * height;
+        var outputLength = (totalPixels + 63) / 64;
+        var output = new ulong[outputLength];
 
         image.ProcessPixelRows(accessor =>
         {
             for (int y = 0; y < height; y++)
             {
                 Span<Rgba32> row = accessor.GetRowSpan(y);
+                var rowBaseIndex = y * width;
 
                 for (int x = 0; x < width; x++)
                 {
                     ref Rgba32 pixel = ref row[x];
 
-                    binaryArray[y, x] = !(pixel.R == 255 && pixel.G == 255 && pixel.B == 255);
+                    if (pixel.R != 255 || pixel.G != 255 || pixel.B != 255)
+                    {
+                        var linearIndex = rowBaseIndex + x;
+                        var wordIndex = linearIndex >> 6;
+                        var bitIndex = linearIndex & 63;
+                        output[wordIndex] |= 1UL << bitIndex;
+                    }
                 }
             }
         });
 
-        image.Dispose();
-        
-        return bitConverter.ToBitArrays(binaryArray);
+        return output;
     }
 
 
