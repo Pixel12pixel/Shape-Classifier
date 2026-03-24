@@ -9,6 +9,8 @@
 
     <ItemGroup>
       <Folder Include="AiModel\" />
+      <Folder Include="CSVFiles\traits\" />
+      <Folder Include="Shapes\" />
     </ItemGroup>
 
     <ItemGroup>
